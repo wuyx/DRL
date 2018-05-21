@@ -23,12 +23,12 @@ game = Deep_Parameters.game   #获取游戏终端状态
 class DQN:
 	def __init__(self):
 
-		# Game Information
+		# Game Information    游戏信息 
 		self.algorithm = 'DQN'             #深度强化学习使用算法
 		self.game_name = game.ReturnName() #游戏名
 
-		# Get parameters
-		self.progress = ''
+		# Get parameters      获取参数
+		self.progress = ''   #当前网络状态
 		self.Num_action = game.Return_Num_Action()#游戏可执行的动作数目
 
 		# Initial parameters
@@ -39,19 +39,19 @@ class DQN:
 		self.learning_rate = Deep_Parameters.Learning_rate  #参数学习率
 		self.gamma = Deep_Parameters.Gamma                  #为折扣衰减系数
 
-		self.first_epsilon = Deep_Parameters.Epsilon       #深度强化学习的小概率随机搜索策略初始概率大小
-		self.final_epsilon = Deep_Parameters.Final_epsilon #深度强化学习的小概率随机搜索策略最终概率大小
+		self.first_epsilon = Deep_Parameters.Epsilon        #深度强化学习的小概率随机搜索策略初始概率大小
+		self.final_epsilon = Deep_Parameters.Final_epsilon  #深度强化学习的小概率随机搜索策略最终概率大小
 
 		self.epsilon = self.first_epsilon   #深度强化学习的小概率随机搜索策略初始概率大小
 
-		self.Num_plot_episode = Deep_Parameters.Num_plot_episode #每训练50次计算显示一次损失函数
+		self.Num_plot_episode = Deep_Parameters.Num_plot_episode #每训练多少次回合画一次损失函数
 
 		self.Is_train = Deep_Parameters.Is_train    #是否为训练状态
 		self.load_path = Deep_Parameters.Load_path  #网络模型加载
 
-		self.step = 1
-		self.score = 0
-		self.episode = 0
+		self.step = 1      #步数
+		self.score = 0     #分数
+		self.episode = 0   #回合
 
 		# date - hour - minute of training time #训练时间显示
 		self.date_time = str(datetime.date.today()) + '_' + \
@@ -59,7 +59,7 @@ class DQN:
 						 str(datetime.datetime.now().minute)
 
 		# parameters for skipping and stacking
-		self.state_set = []
+		self.state_set = []    #状态存储空间
 		self.Num_skipping = Deep_Parameters.Num_skipFrame    #每间隔多少帧执行一次动作
 		self.Num_stacking = Deep_Parameters.Num_stackFrame   #每间隔多少帧保存一次状态序列
 
@@ -69,11 +69,11 @@ class DQN:
 		self.replay_memory = []          #初始化经验回放池
 
 		# Parameter for Target Network
-		self.Num_update_target = Deep_Parameters.Num_update
+		self.Num_update_target = Deep_Parameters.Num_update   #目标网络更新步阀
 
 		# Parameters for network
-		self.img_size = 80
-		self.Num_colorChannel = Deep_Parameters.Num_colorChannel
+		self.img_size = 80   #图像数据大小
+		self.Num_colorChannel = Deep_Parameters.Num_colorChannel  #图像颜色通道数
                 #卷积神经网络模型架构参数设置
 		self.first_conv   = Deep_Parameters.first_conv   #第一层卷积
 		self.second_conv  = Deep_Parameters.second_conv  #第二层卷积
@@ -92,9 +92,9 @@ class DQN:
 		self.step_old    = 0 #网络训练次数记录
 
 		# Initialize Network
-		self.input, self.output = self.network('network')              #获取网络输入输出数据格式
-		self.input_target, self.output_target = self.network('target') #获取网络输入输出数据格式
-		self.train_step, self.action_target, self.y_target, self.loss_train = self.loss_and_train()
+		self.input, self.output = self.network('network')              #获取当前网络输入输出数据格式
+		self.input_target, self.output_target = self.network('target') #获取目标网络输入输出数据格式
+		self.train_step, self.action_target, self.y_target, self.loss_train = self.loss_and_train() #模型训练
 		self.sess, self.saver, self.summary_placeholders, self.update_ops, self.summary_op, self.summary_writer = self.init_sess()
 
 	def main(self):
@@ -102,11 +102,11 @@ class DQN:
 		game_state = game.GameState()#获取游戏状态信息
 
 		# Initialization
-		state = self.initialization(game_state)#获取初始游戏状态
+		state = self.initialization(game_state)    #获取初始游戏状态
 		stacked_state = self.skip_and_stack_frame(state)#
 
 		while True:
-			# Get progress:   #获取当前处于训练、测试那个阶段
+			# Get progress:   #获取当前处于什么阶段，如策略搜索、训练、测试、终止状态
 			self.progress = self.get_progress()
 
 			# Select action   根据当前状态选择动作
@@ -114,11 +114,11 @@ class DQN:
 
 			# Take action and get info. for update选择动作，接收信息
 			next_state, reward, terminal = game_state.frame_step(action)#游戏终端执行动作，返回及时回报和下一状态以及终端状态
-			next_state = self.reshape_input(next_state)#数据预处理
+			next_state = self.reshape_input(next_state)       #数据预处理
 			stacked_next_state = self.skip_and_stack_frame(next_state)#跳帧存储状态
 
 			# Experience Replay经验回放池存储状态转移序列
-			self.experience_replay(stacked_state, action, reward, stacked_next_state, terminal)
+			self.experience_replay(stacked_state, action, reward, stacked_next_state, terminal)  #状态动作序列<s,a,r,s',终端状态>
 
 			# Training!训练
 			if self.progress == 'Training':
@@ -133,16 +133,16 @@ class DQN:
 				self.save_model()
 
 			# Update former info.
-			stacked_state = stacked_next_state
-			self.score += reward#累积回报
-			self.step += 1
+			stacked_state = stacked_next_state   #堆栈下一状态
+			self.score += reward         #累积回报
+			self.step += 1               #训练次数记录
 
 			# Plotting   #画出tensorboard
 			self.plotting(terminal)
 
 			# If game is over (terminal)
 			if terminal:
-				stacked_state = self.if_terminal(game_state)#终端状态
+				stacked_state = self.if_terminal(game_state)   #终端状态
 
 			# Finished!  self.progress表示模型处于观察状态、搜索状态、训练状态  
 			if self.progress == 'Finished':
@@ -151,26 +151,33 @@ class DQN:
 
 	def init_sess(self):
 		# Initialize variables
-		config = tf.ConfigProto()#用在创建session的时候。用来对session进行参数配置
-		config.gpu_options.per_process_gpu_memory_fraction = self.GPU_fraction#占用 self.GPU_fraction 显存 
+		config = tf.ConfigProto()   #用在创建session的时候。用来对session进行参数配置
+		config.gpu_options.per_process_gpu_memory_fraction = self.GPU_fraction  #占用 self.GPU_fraction 显存 
 
-		sess = tf.InteractiveSession(config=config)
+		sess = tf.InteractiveSession(config=config)   #tf.InteractiveSession():它能让你在运行图的时候，插入一些计算图，这些计算图是由某些操作(operations)构成的。
 
-		# Make folder for save data
+		# Make folder for save data   os.makedirs()方法用于递归创建目录。os.makedirs(path, mode=0o777)，path需要递归创建的目录。mode权限模式。
 		os.makedirs('saved_networks/' + self.game_name + '/' + self.date_time + '_' + self.algorithm)
-
-		# Summary for tensorboard  tensorflow的可视化tensorboard
+'''
+TensorFlow的基本知识：
+1. 使用图(graphs)来表示计算；
+2.在会话(Session)中执行图；
+3.使用张量(tensors)来代表数据；
+4.通过变量(variables)来维护状态；
+5.使用供给(feeds)和取回(fetches)来传入或者传出数据。
+'''
+		# Summary for tensorboard     tensorflow的可视化tensorboard
 		summary_placeholders, update_ops, summary_op = self.setup_summary()
 		summary_writer = tf.summary.FileWriter('saved_networks/' + self.game_name + '/' + self.date_time + '_' + self.algorithm, sess.graph)
 
-		init = tf.global_variables_initializer()
+		init = tf.global_variables_initializer()# 初始化模型的参数   将所有全局变量的初始化器汇总，并对其进行初始化。
 		sess.run(init)
 
 		# Load the file if the saved file exists训练网络后想保存训练好的模型，以及在程序中读取以保存的训练好的模型
 		# 首先，保存和恢复都需要实例化一个 tf.train.Saver
 		saver = tf.train.Saver()
 		# check_save = 1  是否加载已训练好的模型
-		check_save = input('Load Model? (1=yes/2=no): ')
+		check_save = input('Load Model? (1=yes/2=no): ')#接受一个标准输入数据，返回为 string 类型。
 
 		if check_save == 1:
 			# Restore variables from disk.使用 saver.restore() 方法，重载模型的参数，继续训练或用于测试数据
@@ -194,7 +201,7 @@ class DQN:
 		return state
         #动态跳帧
 	def skip_and_stack_frame(self, state):
-		self.state_set.append(state)
+		self.state_set.append(state)   #状态集
 
 		state_in = np.zeros((self.img_size, self.img_size, self.Num_colorChannel * self.Num_stacking))
 
@@ -217,7 +224,7 @@ class DQN:
 		elif self.step <= self.Num_Exploration + self.Num_Training + self.Num_Testing:
 			progress = 'Testing'  #网络测试状态
 		else:
-			progress = 'Finished' 
+			progress = 'Finished' #结束状态
 
 		return progress
 
@@ -235,10 +242,10 @@ class DQN:
 
 	# Code for tensorboard
 	def setup_summary(self):
-	    episode_score = tf.Variable(0.)
-	    episode_maxQ = tf.Variable(0.)
-	    episode_loss = tf.Variable(0.)
-
+	    episode_score = tf.Variable(0.)  #每回合分数值
+	    episode_maxQ = tf.Variable(0.)   #每回合最大Q值
+	    episode_loss = tf.Variable(0.)   #每回合损失函数值
+            #TensorBoard可以将训练过程中的各种绘制数据展示出来，对标量数据汇总和记录使用tf.summary.scalar
 	    tf.summary.scalar('Average Score/' + str(self.Num_plot_episode) + ' episodes', episode_score)
 	    tf.summary.scalar('Average MaxQ/' + str(self.Num_plot_episode) + ' episodes', episode_maxQ)
 	    tf.summary.scalar('Average Loss/' + str(self.Num_plot_episode) + ' episodes', episode_loss)
@@ -247,7 +254,8 @@ class DQN:
 
 	    summary_placeholders = [tf.placeholder(tf.float32) for _ in range(len(summary_vars))]
 	    update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in range(len(summary_vars))]
-	    summary_op = tf.summary.merge_all()
+	    summary_op = tf.summary.merge_all() #summary的操作对于整个图来说相当于是外设，因为tensorflow是由结果驱动的，而图的结果并不依赖于summary操作，所以summary操作
+	    #需要被run。整个图经常需要检测许许多多的值，也就是许多值需要summary operation，一个个去run来启动太麻烦了，tensorflow为我们提供了tf.summary.merge_all()函数。	    
 	    return summary_placeholders, update_ops, summary_op
 
 	# Convolution and pooling
@@ -424,14 +432,14 @@ class DQN:
 
 	def if_terminal(self, game_state):            #终端状态
 		# Show Progress     显示模型状态阶段
-		print('Step: ' + str(self.step) + ' / ' +
-		      'Episode: ' + str(self.episode) + ' / ' +
-			  'Progress: ' + self.progress + ' / ' +
-			  'Epsilon: ' + str(self.epsilon) + ' / ' +
-			  'Score: ' + str(self.score))
+		print('Step: ' + str(self.step) + ' / ' +            #训练步数
+		      'Episode: ' + str(self.episode) + ' / ' +      #训练回合
+			  'Progress: ' + self.progress + ' / ' +     #当前状态
+			  'Epsilon: ' + str(self.epsilon) + ' / ' +  #当前的小概率值
+			  'Score: ' + str(self.score))               #当前分数
 
 		if self.progress != 'Exploring':
-			self.episode += 1      #小概率值episode只在训练阶段起作用
+			self.episode += 1      #回合数加1
 		self.score = 0
 
 		# If game is finished, initialize the state
